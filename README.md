@@ -6,7 +6,7 @@ This repository provides Terraform scripts to deploy the Atlan Secure Agent into
 
 Before you begin, ensure you have the following:
 
-- **An existing AWS EKS cluster** (see [eks-terraform](../eks-terraform) or AWS documentation for setup)
+- **An existing AWS EKS cluster** (see [eks-terraform](https://github.com/cmperro/eks-terraform) or AWS documentation for setup)
 - **kubectl** configured for your EKS cluster
 - **AWS CLI** installed and configured with sufficient permissions
 - **Terraform** (version matching your `versions.tf` constraints)
