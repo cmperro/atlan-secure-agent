@@ -1,0 +1,10 @@
+region = "us-east-2"
+atlan_domain = "<>.atlan.com"
+atlan_token = ""
+agent_name = "secure-agent"
+s3-credentials = {
+  accesskey = ""
+  secretkey = ""
+}
+s3_bucket_name = ""
+cluster_name = ""

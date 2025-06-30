@@ -1,0 +1,199 @@
+# -----------------------------------------------------------------------------------------
+# Agent core settings — Follow the comments to update:
+# 1. Image registry settings - To be updated only if you are using a private image registry
+# 2. Atlan connection settings - To be updated only if you want agent to use the S3 bucket
+# 3. Argo Private repository settings - To be updated only if you are using private repository for Argo workflows
+# 4. Kubernetes Pod Annotation settings - To be updated only if you want to customize the Kubernetes pod’s metadata
+# 5. Argo Private repository settings - To be updated only if you are using private repository for Argo workflows
+# 6. S3 storage settings - To be updated with S3 bucket details.
+# -----------------------------------------------------------------------------------------
+agent:
+  enabled: true  
+  enableStorageProxy: false  
+  ca:
+    crt: ""  
+  
+  #Provide a base64-encoded string of a JSON object, e.g., {"client_id": 123, "client_secret": 1243}.
+  #Set this only if you need to include custom headers in API calls made by the agent.
+  restAPIHeaders: "" 
+  versions:
+    k3s: ""
+    k8s: ""
+    helm: ""
+
+  # 1. Image Registry Settings
+  image:
+  # Only update if you're using a private image registry
+    registry: "public.ecr.aws"  
+    repository: "atlanhq"  
+    # Only update if you're using custom images
+    restImageName: "rest-2"
+    restImageTag: "1.0"
+
+    # Only update if you're using custom images
+    jdbcImageName: "jdbc-metadata-extractor-with-jars"
+    jdbcImageTag: "1.0"
+
+    # Only update if you're using custom images
+    credentialImageName: "connector-auth"
+    credentialImageTag: "1.1"
+    
+    # Only update if you're using custom images
+    csaScriptsImageName: "marketplace-csa-scripts"
+    csaScriptsImageTag: "1.0"
+
+    # Marketplace scripts image details - keep these values as is unless using custom images
+    marketplaceScriptsImageName: "marketplace-scripts-agent"
+    marketplaceScriptsImageTag: "1.0"
+    
+    pullPolicy: IfNotPresent
+    pullSecrets: []  # Add pull secrets if using private registry
+
+ 
+  annotations: {}  
+  labels: {} 
+  
+
+  serviceAccountName: ""
+  automountServiceAccountToken: true 
+
+  resources: {}
+
+  # 2. Atlan connection settings - Only update if you want to agent to use the S3 bucket
+  atlan:
+    argoToken: ""  
+    vaultEnvEnabled: false  
+    # Set to true only if the agent should store metadata
+    # in your bucket instead of sending it to Atlan via presigned URL.
+    useAgentBucket: false 
+    metadataBucket: ""
+  persistentVolume: 
+    scripts:  
+      enabled: false
+    data: 
+      enabled: false
+minio:
+  enabled: false  
+
+argo-workflows:
+  images:
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  crds:
+    install: true
+    keep: ${keep_crds}
+    annotations: {}
+  singleNamespace: true  
+  workflow:
+    serviceAccount:
+      create: true
+    rbac:
+      create: true
+  controller:
+    # 3. Argo Private repository settings - Only update if you are using a private image repository for Argo
+    image:
+      # update the private image repository details
+      registry: quay.io  
+      repository: argoproj/workflow-controller 
+      tag: "" 
+    parallelism: 10 
+    resourceRateLimit:
+      limit: 10
+      burst: 5
+    rbac:
+      create: true
+      secretWhitelist: []
+      accessAllSecrets: false
+      writeConfigMaps: false
+    configMap:
+      create: true
+      name: ""
+    namespaceParallelism: 10  
+    workflowDefaults:
+      # 4. Kubernetes Pod Annotation settings - Only update if you want to customize the Pod metadata.
+      ## For example, the annotation might be used by external systems such as proxies, or monitoring tools, and more.
+      spec:
+        podMetadata:
+          annotations:
+            argo.workflow/agent-type: "atlan-agent-service"  
+          labels:
+            app.kubernetes.io/name: "atlan-agent"  
+        podGC:
+          strategy: OnPodSuccess  
+        serviceAccountName: argo-workflow  
+        automountServiceAccountToken: true      
+        ttlStrategy:
+          secondsAfterCompletion: 84600 
+        templateDefaults:
+          container:
+            securityContext:
+              allowPrivilegeEscalation: false          
+            resources: {}   
+            env:
+              - name: CA_CERT
+                valueFrom:
+                  configMapKeyRef:
+                    name: cert-config
+                    key: ca.crt
+                    optional: true
+              - name: REST_API_HEADERS
+                valueFrom:
+                  configMapKeyRef:
+                    name: agent-registry-settings
+                    key: restAPIHeaders
+                    optional: true
+    serviceAccount:
+      create: true
+    name: workflow-controller
+    workflowNamespaces:
+      - argo-workflows 
+    replicas: 1  
+    revisionHistoryLimit: 10  
+    nodeEvents:
+      enabled: false 
+  server:
+    enabled: true  
+  # 5. Argo Private repository settings - Only update if you are using a private image repository for Argo  
+    image:
+      registry: quay.io  
+      repository: argoproj/argocli  
+      tag: ""    
+    rbac:
+      create: true
+    serviceAccount:
+      create: false
+    replicas: 1  
+    autoscaling:
+      enabled: false
+    ingress:
+      enabled: false  
+      annotations:
+        ingress.kubernetes.io/ssl-redirect: "false"
+    resources: {}
+  executor:
+    securityContext: {}
+    resources: {}
+  artifactRepository:
+    archiveLogs: true  
+    useStaticCredentials: false 
+    
+    # 6. S3 bucket settings - needed by the secure agent to store logs and artifacts
+    s3:
+      # S3 bucket name - Update with the bucket name you created in the Permissions required section.
+      bucket: ${s3_bucket_name}
+      # S3 endpoint
+      endpoint: "s3.${region}.amazonaws.com"  
+      # AWS region - Update with the region where you created bucket in the Permissions required section.
+      region: ${region}
+      # Artifact path format
+      keyFormat: "argo-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{pod.name}}"  
+       # Whether to use insecure connections
+      insecure: false 
+      # Use AWS SDK credentials (IAM role)
+      #useSDKCreds: true
+      accessKeySecret:
+        name: s3-credentials
+        key: accesskey
+      secretKeySecret:
+        name: s3-credentials
+        key: secretkey
