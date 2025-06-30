@@ -35,11 +35,12 @@ You can use `terraform.tfvars` or set these via CLI/environment.
 **You must run Terraform apply twice:**
 
 1. **Install Stage:**  
-   Set `deployment_stage = "install"` in your `terraform.tfvars` or provide it via CLI, then run:
-   ```bash
-   terraform init
-   terraform apply
-   ```
+   For the install, you can either:
+   - Provide the variable on the command line:
+     ```bash
+     terraform apply -var="deployment_stage=install"
+     ```
+   - Or, if you do not provide `deployment_stage`, Terraform will prompt you for it interactively during `terraform apply`.
    This will install the agent and create initial resources.
 
 2. **Upgrade Stage:**  
